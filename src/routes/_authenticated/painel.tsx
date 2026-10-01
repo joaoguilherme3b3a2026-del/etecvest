@@ -94,6 +94,7 @@ const itens = [
   { id: "tarefas", label: "Tarefas", icon: ListChecks },
   { id: "revisao", label: "Revisão de erros", icon: RotateCcw },
 ];
+
 function Painel() {
   const { user } = Route.useRouteContext();
   const nome = primeiroNome(
@@ -134,6 +135,7 @@ function Painel() {
     queryKey: ["etecvest", "semana"],
     queryFn: () => buscarSemana(),
   });
+
   const hoje = useQuery({
     queryKey: ["etecvest", "hoje", new Date().toDateString()],
     queryFn: () => buscarDia(),
@@ -269,31 +271,744 @@ function Painel() {
       setGerando(false);
     }
   }
-  return <div className="min-h-screen bg-background">
-  <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-surface px-5 py-7 lg:block"><Logo subtitulo="Desde 2026"/><p className="mt-10 text-xs font-bold uppercase text-muted-foreground">Estudos e acompanhamento</p><nav className="mt-4 space-y-2">{itens.map(({id,label,icon:Icon}) => <a key={id} href={`#${id}`} className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-semibold hover:bg-surface-2"><Icon size={18}/>{label}</a>)}</nav><div className="mt-8 border-t border-border pt-6"><p className="font-bold">Plano de hoje</p><p className="mt-2 text-sm text-muted-foreground">Um passo de cada vez até a Etec.</p><Button className="mt-4" disabled={!semana.data?.questoes.length} onClick={() => semana.data && abrirSimulado(semana.data.questoes, "Simulado da semana — Etec")}>Começar <ArrowRight size={16}/></Button></div></aside>
-    <div className="lg:pl-64"><header className="flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 sm:px-8"><div className="lg:hidden"><Button variant="ghost" aria-label="Abrir menu" onClick={() => setMenu(true)}><Menu size={20}/></Button></div><span className="hidden text-sm text-muted-foreground sm:block">Seu próximo capítulo começa aqui.</span><div className="flex items-center gap-3"><Link to="/" className="btn-base btn-ghost">Tela inicial</Link><Button variant="ghost" disabled={ocupado} onClick={() => executar(async () => {await sairDaConta();qc.clear();await navigate({to:"/"});})}><LogOut size={16}/>Sair</Button></div></header>
-    <main className="mx-auto max-w-6xl space-y-10 px-4 py-8 sm:px-8">
-      <section id="inicio" className="scroll-mt-6"><span className="badge-pill">Seu futuro começa agora</span><h1 className="mt-4 text-3xl font-bold sm:text-4xl">Olá, {nome}!</h1><p className="mt-3 text-muted-foreground">Vamos dar mais um passo rumo à Etec?</p></section>
-      {(erro || progresso.isError) && <div role="alert" className="rounded-2xl border border-destructive p-4"><p>{erro || "Não foi possível carregar seu progresso."}</p><Button variant="ghost" onClick={() => void progresso.refetch()}>Tentar novamente</Button></div>}
-      <section><h2 className="text-xl font-bold">Hoje no EtecVest</h2><p className="mb-4 mt-1 text-sm text-muted-foreground">Muda todo dia, com foco nas matérias em que você mais precisa melhorar.</p>{hoje.isPending ? <p role="status">Montando os treinos de hoje…</p> : hoje.isError ? <Button variant="ghost" onClick={() => void hoje.refetch()}>Tentar carregar os treinos</Button> : <div className="grid gap-4 md:grid-cols-3">{hoje.data.treinos.map(t => <article className="card-soft p-5" key={t.materia}><span className="badge-pill">{t.minutos} min</span><h3 className="mt-3 font-bold">Treino de {t.materia}</h3><p className="mt-2 text-sm text-muted-foreground">5 exercícios criados pela IA com base nas provas reais • {t.motivo}</p><Button className="mt-5" variant="ghost" disabled={!!gerandoIa} onClick={() => void treinoIa(`hoje-${t.materia}`, t.materia, undefined, 5, `Treino de ${t.materia} — Hoje no EtecVest`)}>{gerandoIa===`hoje-${t.materia}` ? "Criando exercícios…" : "Iniciar"} <ArrowRight size={16}/></Button></article>)}</div>}</section>
-      <section id="progresso" className="scroll-mt-6"><h2 className="mb-4 text-xl font-bold">Seu progresso</h2>{progresso.isPending ? <p role="status">Carregando progresso…</p> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[{label:"Meta semanal",value:`${cronogramaConcluido(estado)}%`},{label:"Aproveitamento",value:aproveitamento(estado) === null ? "—" : `${aproveitamento(estado)}%`},{label:"Questões para revisar",value:String(erradas.data?.length ?? 0)},{label:"Última atividade",value:formatarUltimoAcesso(estado.ultimoAcesso)}].map(k => <article key={k.label} className="card-soft p-5"><p className="text-sm text-muted-foreground">{k.label}</p><p className="mt-3 break-words text-xl font-bold">{k.value}</p></article>)}</div>}</section>
-      <section id="materias" className="scroll-mt-6"><h2 className="mb-4 text-xl font-bold">Matérias em destaque</h2><div className="grid gap-4 md:grid-cols-2">{MATERIAS.map(m => <article key={m} className="card-soft p-5"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-bold">{m}</h3><span className="badge-pill">{DETALHES_MATERIA[m].prioridade}</span></div><p className="my-3 text-sm text-muted-foreground">{DETALHES_MATERIA[m].descricao}</p><div className="flex items-center gap-3"><div className="progress-track" role="progressbar" aria-label={`Progresso em ${m}`} aria-valuenow={progressoMateria(estado,m)} aria-valuemin={0} aria-valuemax={100}><span className="progress-fill" style={{width:`${progressoMateria(estado,m)}%`}}/></div><span className="text-sm font-bold">{progressoMateria(estado,m)}%</span></div></article>)}</div></section>
-      <section id="simulados" className="scroll-mt-6 border-y border-border py-8"><span className="badge-pill">Treino da semana</span><h2 className="mt-3 text-2xl font-bold">Simulado da semana</h2><p className="mt-2 text-muted-foreground">Um simulado novo a cada semana, com questões reais da Etec escolhidas pelo seu progresso.</p>{semana.isPending ? <p className="mt-3" role="status">Montando o simulado da semana…</p> : semana.isError ? <Button className="mt-3" variant="ghost" onClick={() => void semana.refetch()}>Tentar novamente</Button> : <><p className="mt-2 text-sm font-semibold">{semana.data.questoes.length} questões • foco: {semana.data.foco.map(f => `${f.materia} (${f.questoes})`).join(", ")}</p><Button className="mt-5" disabled={!semana.data.questoes.length} onClick={() => abrirSimulado(semana.data.questoes, "Simulado da semana — Etec")}>Começar simulado da semana <ArrowRight size={17}/></Button></>}<h3 className="mb-3 mt-8 font-bold">Mini simulados por matéria</h3><div className="flex flex-wrap gap-2">{MINI_SIMULADOS.map(m => <Button key={m.materia} variant="ghost" onClick={() => abrirSimulado(m.questoes, `${m.materia} — mini simulado`)}>{m.materia}</Button>)}</div><h3 className="mb-3 mt-8 text-xl font-bold">Simulados com provas reais da Etec</h3><p className="mb-4 text-sm text-muted-foreground">Questões das provas oficiais do Vestibulinho, de 2009 até hoje. Escolha a matéria, a prova e quantas questões quer responder.</p><div className="flex flex-wrap gap-3"><label className="text-sm font-semibold">Matéria<select aria-label="Matéria do simulado real" value={ofMateria} onChange={e => setOfMateria(e.target.value)} className="ml-2 min-h-11 max-w-full rounded-xl border border-input bg-surface px-3"><option value="">Todas</option>{MATERIAS.map(m => <option key={m}>{m}</option>)}</select></label><label className="text-sm font-semibold">Prova<select aria-label="Prova do simulado real" value={ofEdicao} onChange={e => setOfEdicao(e.target.value)} className="ml-2 min-h-11 max-w-full rounded-xl border border-input bg-surface px-3"><option value="">Todas as provas</option>{(edicoes.data ?? []).map(e2 => <option key={`${e2.ano}-${e2.semestre}`} value={`${e2.ano}-${e2.semestre}`}>{e2.ano} — {e2.semestre}º semestre ({e2.total} questões)</option>)}</select></label><label className="text-sm font-semibold">Questões<select aria-label="Quantidade de questões" value={ofQtd} onChange={e => setOfQtd(Number(e.target.value))} className="ml-2 min-h-11 rounded-xl border border-input bg-surface px-3">{[5,10,20,30].map(n => <option key={n} value={n}>{n}</option>)}</select></label></div>{edicoes.isPending && <p className="mt-3 text-sm text-muted-foreground" role="status">Carregando provas disponíveis…</p>}{edicoes.isError && <Button className="mt-3" variant="ghost" onClick={() => void edicoes.refetch()}>Tentar carregar as provas</Button>}<Button className="mt-5" disabled={gerando} onClick={() => void gerarSimuladoReal()}>{gerando ? "Montando simulado…" : "Começar simulado com provas reais"} <ArrowRight size={17}/></Button>{erroOficial && <p role="alert" className="mt-3 text-sm font-semibold text-destructive">{erroOficial}</p>}<p className="mt-4 text-sm text-muted-foreground">Quer ver as provas completas em PDF? <a className="underline" href="https://www.cps.sp.gov.br/etec/vestibulinho/" target="_blank" rel="noreferrer">Site do Centro Paula Souza ↗</a></p></section>
-      <section id="ia" className="scroll-mt-6"><span className="badge-pill"><Bot size={14}/>IA de apoio</span><h2 className="mb-4 mt-3 text-2xl font-bold">Converse com a IA de apoio</h2><ChatIa/></section>
-      <section id="tarefas" className="scroll-mt-6"><h2 className="text-xl font-bold">Tarefas de revisão</h2><div className="my-4 flex flex-wrap gap-3"><label className="text-sm">Matéria<select aria-label="Filtrar por matéria" value={materia} onChange={e => setMateria(e.target.value)} className="ml-2 min-h-11 max-w-full rounded-xl border bg-surface px-3"><option value="">Todas</option>{MATERIAS.map(m => <option key={m}>{m}</option>)}</select></label><label className="text-sm">Edição<select aria-label="Filtrar por edição" value={edicao} onChange={e => setEdicao(e.target.value)} className="ml-2 min-h-11 max-w-full rounded-xl border bg-surface px-3"><option value="">Todas</option>{VESTIBULINHOS.map(v => <option key={v.id} value={v.id}>{v.rotulo}</option>)}</select></label></div><div className="divide-y divide-border">{tarefas.map(t => {const concluida = estado.tarefasConcluidas.includes(t.id);return <article key={t.id} className="flex flex-wrap items-center justify-between gap-4 py-5"><div><h3 className="font-bold">{t.titulo}</h3><p className="mt-1 text-sm text-muted-foreground">{t.materia} • {t.minutos} min</p></div><div className="flex flex-wrap items-center gap-2"><span className="badge-pill">{concluida ? "Concluída" : "Pendente"}</span><Button variant="ghost" disabled={!!gerandoIa} onClick={() => void iniciarTarefa(t.id)}>{gerandoIa===t.id ? "Criando exercícios…" : "Iniciar"}</Button><Button disabled={ocupado || progresso.isPending || progresso.isError} variant="ghost" onClick={() => executar(() => acoes.alternarTarefa(t.id))}>{concluida ? "Reabrir" : "Concluir"}</Button></div></article>;})}{!tarefas.length && <p className="py-5 text-muted-foreground">Nenhuma tarefa com esses filtros.</p>}</div></section>
-      <section id="revisao" className="scroll-mt-6 border-t border-border pt-8"><h2 className="text-xl font-bold">Revisão de erros</h2>{erradas.isPending ? <p className="mt-4" role="status">Carregando revisão…</p> : erradas.isError ? <Button className="mt-4" onClick={() => void erradas.refetch()}>Tentar carregar revisão</Button> : !erradas.data?.length ? <p className="mt-4 text-muted-foreground">Nenhuma questão errada — continue treinando!</p> : <div className="divide-y divide-border">{erradas.data.map(r => {const q = r.questao;return <article key={r.id} className="flex flex-wrap items-center justify-between gap-4 py-5"><div className="max-w-xl"><span className="badge-pill">{r.materia}</span>{r.vestibulinho === "ia" ? <span className="badge-pill ml-2">Criada pela IA</span> : r.vestibulinho && r.vestibulinho !== "autoral" && <span className="badge-pill ml-2">Prova {r.vestibulinho.replace("-","/")}</span>}<h3 className="mt-2 font-semibold">{q?.enunciado ?? "Questão indisponível"}</h3></div><div className="flex gap-2"><Button disabled={!q} onClick={() => {setRevisao(q ?? null);setAlternativa(null);setFeedback("");}}>Refazer</Button><Button variant="ghost" disabled={!q} onClick={() => q && perguntarIa(pedidoComoResolver(q))}>Como resolver</Button></div></article>;})}</div>}</section>
-    </main></div>
-    <Modal open={menu} onClose={() => setMenu(false)} titleId="menu-title" title="EtecVest"><nav className="grid gap-2">{itens.map(({id,label}) => <a key={id} href={`#${id}`} className="btn-base btn-ghost" onClick={() => setMenu(false)}>{label}</a>)}</nav></Modal>
-    <SimuladoModal key={chaveSimulado} open={simulado !== null} titulo={tituloSimulado} questoes={simulado ?? QUESTOES_SIMULADO} onClose={() => setSimulado(null)} onFinalizar={async r => {await acoes.salvarSimulado(r);await qc.invalidateQueries({queryKey:["etecvest","erradas"]});await qc.invalidateQueries({queryKey:["etecvest","semana"]});}}/>
-    
-    <Modal open={!!revisao} onClose={() => setRevisao(null)} titleId="revisao-title" title="Revisar questão">{revisao && <div className="space-y-4"><fieldset><legend className="mb-4 font-bold">{revisao.enunciado}</legend>{revisao.alternativas.map((a,i) => <label key={i} className="mb-2 flex min-h-11 items-center gap-3 rounded-xl border p-3"><input type="radio" name="revisao" checked={alternativa===i} onChange={() => setAlternativa(i)}/>{a}</label>)}</fieldset><Button disabled={alternativa === null || ocupado} onClick={() => executar(async () => {if(alternativa === null)return;const r = await resolver({data:{questaoId:revisao.id,respondida:alternativa}});setFeedback(r.ok ? "Correto! Questão removida da sua revisão." : "Ainda não. Leia novamente e tente outra alternativa.");await qc.invalidateQueries({queryKey:["etecvest","erradas"]});})}>Conferir resposta</Button><p role="status">{feedback}</p></div>}</Modal>
-  </div>;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-surface px-5 py-7 lg:block">
+        <Logo subtitulo="Desde 2026" />
+
+        <p className="mt-10 text-xs font-bold uppercase text-muted-foreground">
+          Estudos e acompanhamento
+        </p>
+
+        <nav className="mt-4 space-y-2">
+          {itens.map(({ id, label, icon: Icon }) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-semibold hover:bg-surface-2"
+            >
+              <Icon size={18} />
+              {label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="mt-8 border-t border-border pt-6">
+          <p className="font-bold">Plano de hoje</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Um passo de cada vez até a Etec.
+          </p>
+
+          <Button
+            className="mt-4"
+            disabled={!semana.data?.questoes.length}
+            onClick={() =>
+              semana.data &&
+              abrirSimulado(
+                semana.data.questoes,
+                "Simulado da semana — Etec",
+              )
+            }
+          >
+            Começar <ArrowRight size={16} />
+          </Button>
+        </div>
+      </aside>
+
+      <div className="lg:pl-64">
+        <header className="flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 sm:px-8">
+          <div className="lg:hidden">
+            <Button
+              variant="ghost"
+              aria-label="Abrir menu"
+              onClick={() => setMenu(true)}
+            >
+              <Menu size={20} />
+            </Button>
+          </div>
+
+          <span className="hidden text-sm text-muted-foreground sm:block">
+            Seu próximo capítulo começa aqui.
+          </span>
+
+          <div className="flex items-center gap-3">
+            <Link to="/" className="btn-base btn-ghost">
+              Tela inicial
+            </Link>
+
+            <Button
+              variant="ghost"
+              disabled={ocupado}
+              onClick={() =>
+                executar(async () => {
+                  await sairDaConta();
+                  qc.clear();
+                  await navigate({ to: "/" });
+                })
+              }
+            >
+              <LogOut size={16} />
+              Sair
+            </Button>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-6xl space-y-10 px-4 py-8 sm:px-8">
+          <section id="inicio" className="scroll-mt-6">
+            <span className="badge-pill">Seu futuro começa agora</span>
+            <h1 className="mt-4 text-3xl font-bold sm:text-4xl">
+              Olá, {nome}!
+            </h1>
+            <p className="mt-3 text-muted-foreground">
+              Vamos dar mais um passo rumo à Etec?
+            </p>
+          </section>
+
+          {(erro || progresso.isError) && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-destructive p-4"
+            >
+              <p>{erro || "Não foi possível carregar seu progresso."}</p>
+              <Button
+                variant="ghost"
+                onClick={() => void progresso.refetch()}
+              >
+                Tentar novamente
+              </Button>
+            </div>
+          )}
+
+          <section>
+            <h2 className="text-xl font-bold">Hoje no EtecVest</h2>
+            <p className="mb-4 mt-1 text-sm text-muted-foreground">
+              Muda todo dia, com foco nas matérias em que você mais precisa
+              melhorar.
+            </p>
+
+            {hoje.isPending ? (
+              <p role="status">Montando os treinos de hoje…</p>
+            ) : hoje.isError ? (
+              <Button
+                variant="ghost"
+                onClick={() => void hoje.refetch()}
+              >
+                Tentar carregar os treinos
+              </Button>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-3">
+                {hoje.data.treinos.map((t) => (
+                  <article className="card-soft p-5" key={t.materia}>
+                    <span className="badge-pill">{t.minutos} min</span>
+
+                    <h3 className="mt-3 font-bold">
+                      Treino de {t.materia}
+                    </h3>
+
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      5 exercícios criados pela IA com base nas provas reais •{" "}
+                      {t.motivo}
+                    </p>
+
+                    <Button
+                      className="mt-5"
+                      variant="ghost"
+                      disabled={!!gerandoIa}
+                      onClick={() =>
+                        void treinoIa(
+                          `hoje-${t.materia}`,
+                          t.materia,
+                          undefined,
+                          5,
+                          `Treino de ${t.materia} — Hoje no EtecVest`,
+                        )
+                      }
+                    >
+                      {gerandoIa === `hoje-${t.materia}`
+                        ? "Criando exercícios…"
+                        : "Iniciar"}
+                      <ArrowRight size={16} />
+                    </Button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section id="progresso" className="scroll-mt-6">
+            <h2 className="mb-4 text-xl font-bold">Seu progresso</h2>
+
+            {progresso.isPending ? (
+              <p role="status">Carregando progresso…</p>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  {
+                    label: "Meta semanal",
+                    value: `${cronogramaConcluido(estado)}%`,
+                  },
+                  {
+                    label: "Aproveitamento",
+                    value:
+                      aproveitamento(estado) === null
+                        ? "—"
+                        : `${aproveitamento(estado)}%`,
+                  },
+                  {
+                    label: "Questões para revisar",
+                    value: String(erradas.data?.length ?? 0),
+                  },
+                  {
+                    label: "Última atividade",
+                    value: formatarUltimoAcesso(estado.ultimoAcesso),
+                  },
+                ].map((k) => (
+                  <article key={k.label} className="card-soft p-5">
+                    <p className="text-sm text-muted-foreground">
+                      {k.label}
+                    </p>
+                    <p className="mt-3 break-words text-xl font-bold">
+                      {k.value}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section id="materias" className="scroll-mt-6">
+            <h2 className="mb-4 text-xl font-bold">Matérias em destaque</h2>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {MATERIAS.map((m) => (
+                <article key={m} className="card-soft p-5">
+                  <div className="flex flex-wrap justify-between gap-2">
+                    <h3 className="font-bold">{m}</h3>
+                    <span className="badge-pill">
+                      {DETALHES_MATERIA[m].prioridade}
+                    </span>
+                  </div>
+
+                  <p className="my-3 text-sm text-muted-foreground">
+                    {DETALHES_MATERIA[m].descricao}
+                  </p>
+
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="progress-track"
+                      role="progressbar"
+                      aria-label={`Progresso em ${m}`}
+                      aria-valuenow={progressoMateria(estado, m)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <span
+                        className="progress-fill"
+                        style={{
+                          width: `${progressoMateria(estado, m)}%`,
+                        }}
+                      />
+                    </div>
+
+                    <span className="text-sm font-bold">
+                      {progressoMateria(estado, m)}%
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section
+            id="simulados"
+            className="scroll-mt-6 border-y border-border py-8"
+          >
+            <span className="badge-pill">Treino da semana</span>
+
+            <h2 className="mt-3 text-2xl font-bold">
+              Simulado da semana
+            </h2>
+
+            <p className="mt-2 text-muted-foreground">
+              Um simulado novo a cada semana, com questões reais da Etec
+              escolhidas pelo seu progresso.
+            </p>
+
+            {semana.isPending ? (
+              <p className="mt-3" role="status">
+                Montando o simulado da semana…
+              </p>
+            ) : semana.isError ? (
+              <Button
+                className="mt-3"
+                variant="ghost"
+                onClick={() => void semana.refetch()}
+              >
+                Tentar novamente
+              </Button>
+            ) : (
+              <>
+                <p className="mt-2 text-sm font-semibold">
+                  {semana.data.questoes.length} questões • foco:{" "}
+                  {semana.data.foco
+                    .map((f) => `${f.materia} (${f.questoes})`)
+                    .join(", ")}
+                </p>
+
+                <Button
+                  className="mt-5"
+                  disabled={!semana.data.questoes.length}
+                  onClick={() =>
+                    abrirSimulado(
+                      semana.data.questoes,
+                      "Simulado da semana — Etec",
+                    )
+                  }
+                >
+                  Começar simulado da semana
+                  <ArrowRight size={17} />
+                </Button>
+              </>
+            )}
+
+            <h3 className="mb-3 mt-8 font-bold">
+              Mini simulados por matéria
+            </h3>
+
+            <div className="flex flex-wrap gap-2">
+              {MINI_SIMULADOS.map((m) => (
+                <Button
+                  key={m.materia}
+                  variant="ghost"
+                  onClick={() =>
+                    abrirSimulado(
+                      m.questoes,
+                      `${m.materia} — mini simulado`,
+                    )
+                  }
+                >
+                  {m.materia}
+                </Button>
+              ))}
+            </div>
+
+            <h3 className="mb-3 mt-8 text-xl font-bold">
+              Simulados com provas reais da Etec
+            </h3>
+
+            <p className="mb-4 text-sm text-muted-foreground">
+              Questões das provas oficiais do Vestibulinho, de 2009 até hoje.
+              Escolha a matéria, a prova e quantas questões quer responder.
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <label className="text-sm font-semibold">
+                Matéria
+                <select
+                  aria-label="Matéria do simulado real"
+                  value={ofMateria}
+                  onChange={(e) => setOfMateria(e.target.value)}
+                  className="ml-2 min-h-11 max-w-full rounded-xl border border-input bg-surface px-3"
+                >
+                  <option value="">Todas</option>
+                  {MATERIAS.map((m) => (
+                    <option key={m}>{m}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="text-sm font-semibold">
+                Prova
+                <select
+                  aria-label="Prova do simulado real"
+                  value={ofEdicao}
+                  onChange={(e) => setOfEdicao(e.target.value)}
+                  className="ml-2 min-h-11 max-w-full rounded-xl border border-input bg-surface px-3"
+                >
+                  <option value="">Todas as provas</option>
+                  {(edicoes.data ?? []).map((e2) => (
+                    <option
+                      key={`${e2.ano}-${e2.semestre}`}
+                      value={`${e2.ano}-${e2.semestre}`}
+                    >
+                      {e2.ano} — {e2.semestre}º semestre ({e2.total} questões)
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="text-sm font-semibold">
+                Questões
+                <select
+                  aria-label="Quantidade de questões"
+                  value={ofQtd}
+                  onChange={(e) => setOfQtd(Number(e.target.value))}
+                  className="ml-2 min-h-11 rounded-xl border border-input bg-surface px-3"
+                >
+                  {[5, 10, 20, 30].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {edicoes.isPending && (
+              <p className="mt-3 text-sm text-muted-foreground" role="status">
+                Carregando provas disponíveis…
+              </p>
+            )}
+
+            {edicoes.isError && (
+              <Button
+                className="mt-3"
+                variant="ghost"
+                onClick={() => void edicoes.refetch()}
+              >
+                Tentar carregar as provas
+              </Button>
+            )}
+
+            <Button
+              className="mt-5"
+              disabled={gerando}
+              onClick={() => void gerarSimuladoReal()}
+            >
+              {gerando ? "Montando simulado…" : "Começar simulado com provas reais"}
+              <ArrowRight size={17} />
+            </Button>
+
+            {erroOficial && (
+              <p
+                role="alert"
+                className="mt-3 text-sm font-semibold text-destructive"
+              >
+                {erroOficial}
+              </p>
+            )}
+
+            <p className="mt-4 text-sm text-muted-foreground">
+              Quer ver as provas completas em PDF?{" "}
+              <a
+                className="underline"
+                href="https://www.cps.sp.gov.br/etec/vestibulinho/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Site do Centro Paula Souza ↗
+              </a>
+            </p>
+          </section>
+
+          <section id="ia" className="scroll-mt-6">
+            <span className="badge-pill">
+              <Bot size={14} />
+              IA de apoio
+            </span>
+
+            <h2 className="mb-4 mt-3 text-2xl font-bold">
+              Converse com a IA de apoio
+            </h2>
+
+            <ChatIa />
+          </section>
+
+          <section id="tarefas" className="scroll-mt-6">
+            <h2 className="text-xl font-bold">Tarefas de revisão</h2>
+
+            <div className="my-4 flex flex-wrap gap-3">
+              <label className="text-sm">
+                Matéria
+                <select
+                  aria-label="Filtrar por matéria"
+                  value={materia}
+                  onChange={(e) => setMateria(e.target.value)}
+                  className="ml-2 min-h-11 max-w-full rounded-xl border bg-surface px-3"
+                >
+                  <option value="">Todas</option>
+                  {MATERIAS.map((m) => (
+                    <option key={m}>{m}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="text-sm">
+                Edição
+                <select
+                  aria-label="Filtrar por edição"
+                  value={edicao}
+                  onChange={(e) => setEdicao(e.target.value)}
+                  className="ml-2 min-h-11 max-w-full rounded-xl border bg-surface px-3"
+                >
+                  <option value="">Todas</option>
+                  {VESTIBULINHOS.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.rotulo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="divide-y divide-border">
+              {tarefas.map((t) => {
+                const concluida = estado.tarefasConcluidas.includes(t.id);
+
+                return (
+                  <article
+                    key={t.id}
+                    className="flex flex-wrap items-center justify-between gap-4 py-5"
+                  >
+                    <div>
+                      <h3 className="font-bold">{t.titulo}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t.materia} • {t.minutos} min
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="badge-pill">
+                        {concluida ? "Concluída" : "Pendente"}
+                      </span>
+
+                      <Button
+                        variant="ghost"
+                        disabled={!!gerandoIa}
+                        onClick={() => void iniciarTarefa(t.id)}
+                      >
+                        {gerandoIa === t.id
+                          ? "Criando exercícios…"
+                          : "Iniciar"}
+                      </Button>
+
+                      <Button
+                        disabled={
+                          ocupado ||
+                          progresso.isPending ||
+                          progresso.isError
+                        }
+                        variant="ghost"
+                        onClick={() =>
+                          executar(() => acoes.alternarTarefa(t.id))
+                        }
+                      >
+                        {concluida ? "Reabrir" : "Concluir"}
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
+
+              {!tarefas.length && (
+                <p className="py-5 text-muted-foreground">
+                  Nenhuma tarefa com esses filtros.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section
+            id="revisao"
+            className="scroll-mt-6 border-t border-border pt-8"
+          >
+            <h2 className="text-xl font-bold">Revisão de erros</h2>
+
+            {erradas.isPending ? (
+              <p className="mt-4" role="status">
+                Carregando revisão…
+              </p>
+            ) : erradas.isError ? (
+              <Button
+                className="mt-4"
+                onClick={() => void erradas.refetch()}
+              >
+                Tentar carregar revisão
+              </Button>
+            ) : !erradas.data?.length ? (
+              <p className="mt-4 text-muted-foreground">
+                Nenhuma questão errada — continue treinando!
+              </p>
+            ) : (
+              <div className="divide-y divide-border">
+                {erradas.data.map((r) => {
+                  const q = r.questao;
+
+                  return (
+                    <article
+                      key={r.id}
+                      className="flex flex-wrap items-center justify-between gap-4 py-5"
+                    >
+                      <div className="max-w-xl">
+                        <span className="badge-pill">{r.materia}</span>
+
+                        {r.vestibulinho === "ia" ? (
+                          <span className="badge-pill ml-2">
+                            Criada pela IA
+                          </span>
+                        ) : (
+                          r.vestibulinho &&
+                          r.vestibulinho !== "autoral" && (
+                            <span className="badge-pill ml-2">
+                              Prova {r.vestibulinho.replace("-", "/")}
+                            </span>
+                          )
+                        )}
+
+                        <h3 className="mt-2 font-semibold">
+                          {q?.enunciado ?? "Questão indisponível"}
+                        </h3>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          disabled={!q}
+                          onClick={() => {
+                            setRevisao(q ?? null);
+                            setAlternativa(null);
+                            setFeedback("");
+                          }}
+                        >
+                          Refazer
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          disabled={!q}
+                          onClick={() =>
+                            q && perguntarIa(pedidoComoResolver(q))
+                          }
+                        >
+                          Como resolver
+                        </Button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
+
+      <Modal
+        open={menu}
+        onClose={() => setMenu(false)}
+        titleId="menu-title"
+        title="EtecVest"
+      >
+        <nav className="grid gap-2">
+          {itens.map(({ id, label }) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className="btn-base btn-ghost"
+              onClick={() => setMenu(false)}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+      </Modal>
+
+      <SimuladoModal
+        key={chaveSimulado}
+        open={simulado !== null}
+        titulo={tituloSimulado}
+        questoes={simulado ?? QUESTOES_SIMULADO}
+        onClose={() => setSimulado(null)}
+        onFinalizar={async (r) => {
+          await acoes.salvarSimulado(r);
+          await qc.invalidateQueries({
+            queryKey: ["etecvest", "erradas"],
+          });
+          await qc.invalidateQueries({
+            queryKey: ["etecvest", "semana"],
+          });
+        }}
+      />
+
+      <Modal
+        open={!!revisao}
+        onClose={() => setRevisao(null)}
+        titleId="revisao-title"
+        title="Revisar questão"
+      >
+        {revisao && (
+          <div className="space-y-4">
+            <fieldset>
+              <legend className="mb-4 font-bold">
+                {revisao.enunciado}
+              </legend>
+
+              {revisao.alternativas.map((a, i) => (
+                <label
+                  key={i}
+                  className="mb-2 flex min-h-11 items-center gap-3 rounded-xl border p-3"
+                >
+                  <input
+                    type="radio"
+                    name="revisao"
+                    checked={alternativa === i}
+                    onChange={() => setAlternativa(i)}
+                  />
+                  {a}
+                </label>
+              ))}
+            </fieldset>
+
+            <Button
+              disabled={alternativa === null || ocupado}
+              onClick={() =>
+                executar(async () => {
+                  if (alternativa === null) {
+                    return;
+                  }
+
+                  const r = await resolver({
+                    data: {
+                      questaoId: revisao.id,
+                      respondida: alternativa,
+                    },
+                  });
+
+                  setFeedback(
+                    r.ok
+                      ? "Correto! Questão removida da sua revisão."
+                      : "Ainda não. Leia novamente e tente outra alternativa.",
+                  );
+
+                  await qc.invalidateQueries({
+                    queryKey: ["etecvest", "erradas"],
+                  });
+                })
+              }
+            >
+              Conferir resposta
+            </Button>
+
+            <p role="status">{feedback}</p>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
 }
 
-function pedidoComoResolver(q: { enunciado: string; alternativas: string[]; materia: string }) {
-  const alts = q.alternativas.map((a, i) => `(${"ABCDE"[i]}) ${a}`).join("\n");
-  const tipo = q.materia === "Matemática"
-    ? "Explique passo a passo o raciocínio e os conceitos para resolver, com um exemplo parecido,"
-    : "Se não for uma questão de cálculo, escreva um texto explicando o assunto cobrado (contexto, conceitos e o que estudar) para que eu consiga responder sozinho,";
+function pedidoComoResolver(q: {
+  enunciado: string;
+  alternativas: string[];
+  materia: string;
+}) {
+  const alts = q.alternativas
+    .map((a, i) => `(${"ABCDE"[i]}) ${a}`)
+    .join("\n");
+
+  const tipo =
+    q.materia === "Matemática"
+      ? "Explique passo a passo o raciocínio e os conceitos para resolver, com um exemplo parecido,"
+      : "Se não for uma questão de cálculo, escreva um texto explicando o assunto cobrado (contexto, conceitos e o que estudar) para que eu consiga responder sozinho,";
+
   return `Como resolver esta questão de ${q.materia}? ${tipo} mas NÃO diga qual é a alternativa correta nem elimine alternativas — quero resolver sozinho.\n\n${q.enunciado}\n\n${alts}`;
 }
