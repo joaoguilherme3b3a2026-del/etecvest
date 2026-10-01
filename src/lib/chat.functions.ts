@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type MensagemSalva = { id: string; papel: "user" | "assistant"; conteudo: string };
+export type MensagemSalva = {
+  id: string;
+  papel: "user" | "assistant";
+  conteudo: string;
+};
 
 export const listarMensagens = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -11,11 +15,15 @@ export const listarMensagens = createServerFn({ method: "GET" })
       .select("id, papel, conteudo")
       .order("criado_em", { ascending: true })
       .limit(200);
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((m) => ({
-      id: m.id,
-      papel: m.papel === "assistant" ? "assistant" : "user",
-      conteudo: m.conteudo,
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data ?? []).map((mensagem) => ({
+      id: mensagem.id,
+      papel: mensagem.papel === "assistant" ? "assistant" : "user",
+      conteudo: mensagem.conteudo,
     }));
   });
 
@@ -26,6 +34,10 @@ export const limparConversa = createServerFn({ method: "POST" })
       .from("mensagens_ia")
       .delete()
       .eq("user_id", context.userId);
-    if (error) throw new Error(error.message);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
     return { ok: true };
   });
