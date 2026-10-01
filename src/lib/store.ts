@@ -1,58 +1,83 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Pequena store persistida em localStorage, compartilhada entre componentes.
- * Uso: const [valor, setValor] = useStore(minhaStore)
+ * Pequena store persistida em localStorage e compartilhada entre componentes.
  */
 export function createLocalStore<T>(chave: string, inicial: T) {
-  let valor: T = inicial;
+  let valor = inicial;
   let carregado = false;
   const ouvintes = new Set<() => void>();
 
   function carregar() {
-    if (carregado || typeof window === "undefined") return;
+    if (carregado || typeof window === "undefined") {
+      return;
+    }
+
     carregado = true;
+
     try {
-      const bruto = window.localStorage.getItem(chave);
-      if (bruto) valor = { ...inicial, ...(JSON.parse(bruto) as T) };
+      const salvo = window.localStorage.getItem(chave);
+
+      if (salvo) {
+        valor = {
+          ...inicial,
+          ...(JSON.parse(salvo) as T),
+        };
+      }
     } catch {
       valor = inicial;
     }
   }
 
+  function avisar() {
+    ouvintes.forEach((ouvinte) => ouvinte());
+  }
+
   return {
-    subscribe(fn: () => void) {
+    subscribe(ouvinte: () => void) {
       carregar();
-      ouvintes.add(fn);
-      return () => ouvintes.delete(fn);
+      ouvintes.add(ouvinte);
+
+      return () => ouvintes.delete(ouvinte);
     },
-    get(): T {
+
+    get() {
       carregar();
       return valor;
     },
-    getServer(): T {
+
+    getServer() {
       return inicial;
     },
+
     set(proximo: T | ((atual: T) => T)) {
       carregar();
+
       valor =
-        typeof proximo === "function" ? (proximo as (atual: T) => T)(valor) : proximo;
+        typeof proximo === "function"
+          ? (proximo as (atual: T) => T)(valor)
+          : proximo;
+
       try {
         window.localStorage.setItem(chave, JSON.stringify(valor));
       } catch {
-        /* armazenamento indisponível: mantém apenas em memória */
+        // Mantém o valor em memória quando o armazenamento não estiver disponível.
       }
-      ouvintes.forEach((fn) => fn());
+
+      avisar();
     },
+
     limpar() {
       carregado = true;
       valor = inicial;
+
       try {
         window.localStorage.removeItem(chave);
       } catch {
-        /* ignora */
+        // Não há ação necessária se o armazenamento estiver indisponível.
       }
-      ouvintes.forEach((fn) => fn());
+
+      avisar();
     },
   };
 }
@@ -60,5 +85,9 @@ export function createLocalStore<T>(chave: string, inicial: T) {
 export type LocalStore<T> = ReturnType<typeof createLocalStore<T>>;
 
 export function useStore<T>(store: LocalStore<T>): T {
-  return useSyncExternalStore(store.subscribe, store.get, store.getServer);
+  return useSyncExternalStore(
+    store.subscribe,
+    store.get,
+    store.getServer,
+  );
 }
