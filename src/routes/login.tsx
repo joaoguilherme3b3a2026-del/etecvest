@@ -38,16 +38,86 @@ const campoClasse =
   "mt-1.5 min-h-11 w-full rounded-2xl border border-input bg-surface px-4 text-sm placeholder:text-muted-foreground";
 
 function traduzirErro(mensagem: string): string {
-  const m = mensagem.toLowerCase();
-  if (m.includes("invalid login")) return "E-mail ou senha incorretos. Tente novamente.";
-  if (m.includes("user already registered") || m.includes("already been registered"))
+  const texto = mensagem.toLowerCase();
+
+  if (texto.includes("invalid login")) {
+    return "E-mail ou senha incorretos. Tente novamente.";
+  }
+
+  if (
+    texto.includes("user already registered") ||
+    texto.includes("already been registered")
+  ) {
     return "Este e-mail já está cadastrado. Faça login ou use outro e-mail.";
-  if (m.includes("pwned") || m.includes("known to be weak") || m.includes("compromised"))
+  }
+
+  if (
+    texto.includes("pwned") ||
+    texto.includes("known to be weak") ||
+    texto.includes("compromised")
+  ) {
     return "Essa senha é muito comum e já vazou na internet. Escolha uma senha mais difícil.";
-  if (m.includes("password should be")) return "A senha não atende aos requisitos de segurança.";
-  if (m.includes("rate limit")) return "Muitas tentativas em pouco tempo. Aguarde alguns minutos.";
-  if (m.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
+  }
+
+  if (texto.includes("password should be")) {
+    return "A senha não atende aos requisitos de segurança.";
+  }
+
+  if (texto.includes("rate limit")) {
+    return "Muitas tentativas em pouco tempo. Aguarde alguns minutos.";
+  }
+
+  if (texto.includes("email not confirmed")) {
+    return "Confirme seu e-mail antes de entrar.";
+  }
+
   return "Não foi possível agora. Verifique seus dados e tente novamente.";
+}
+
+function validarFormulario(
+  cadastro: boolean,
+  nome: string,
+  email: string,
+  senha: string,
+  confirmacao: string,
+): Erros {
+  const erros: Erros = {};
+
+  if (cadastro) {
+    const nomeInformado = nome.trim();
+
+    if (!nomeInformado) {
+      erros.nome = "Informe o seu nome completo.";
+    } else if (nomeInformado.length < 3) {
+      erros.nome = "O nome precisa ter pelo menos 3 caracteres.";
+    } else if (nomeInformado.length > 80) {
+      erros.nome = "O nome pode ter no máximo 80 caracteres.";
+    }
+  }
+
+  const emailInformado = email.trim();
+
+  if (!emailInformado) {
+    erros.email = "Informe o seu e-mail.";
+  } else if (!EMAIL_REGEX.test(emailInformado)) {
+    erros.email = "Digite um e-mail válido, por exemplo: aluno@email.com";
+  }
+
+  if (!senha) {
+    erros.senha = "Informe a sua senha.";
+  } else if (senha.length < 4) {
+    erros.senha = "A senha precisa ter pelo menos 4 caracteres.";
+  }
+
+  if (cadastro) {
+    if (!confirmacao) {
+      erros.confirmacao = "Confirme a sua senha.";
+    } else if (confirmacao !== senha) {
+      erros.confirmacao = "As duas senhas precisam ser iguais.";
+    }
+  }
+
+  return erros;
 }
 
 function LoginPage() {
@@ -89,25 +159,13 @@ function LoginPage() {
 
   async function enviar(event: FormEvent) {
     event.preventDefault();
-    const novos: Erros = {};
-
-    if (cadastro) {
-      if (!nome.trim()) novos.nome = "Informe o seu nome completo.";
-      else if (nome.trim().length < 3) novos.nome = "O nome precisa ter pelo menos 3 caracteres.";
-      else if (nome.trim().length > 80) novos.nome = "O nome pode ter no máximo 80 caracteres.";
-    }
-
-    if (!email.trim()) novos.email = "Informe o seu e-mail.";
-    else if (!EMAIL_REGEX.test(email.trim()))
-      novos.email = "Digite um e-mail válido, por exemplo: aluno@email.com";
-
-    if (!senha) novos.senha = "Informe a sua senha.";
-    else if (senha.length < 4) novos.senha = "A senha precisa ter pelo menos 4 caracteres.";
-
-    if (cadastro) {
-      if (!confirmacao) novos.confirmacao = "Confirme a sua senha.";
-      else if (confirmacao !== senha) novos.confirmacao = "As duas senhas precisam ser iguais.";
-    }
+    const novos = validarFormulario(
+      cadastro,
+      nome,
+      email,
+      senha,
+      confirmacao,
+    );
 
     setErros(novos);
     if (Object.keys(novos).length > 0) return;
@@ -121,7 +179,11 @@ function LoginPage() {
         const { data, error } = await supabase.auth.signUp({
           email: emailFinal,
           password: senha,
-          options: { data: { nome: nome.trim() } },
+          options: {
+            data: {
+              nome: nome.trim(),
+            },
+          },
         });
         if (error) throw error;
         if (data.session) {
@@ -160,7 +222,10 @@ function LoginPage() {
       setErroGeral("Não foi possível entrar com o Google agora. Tente novamente.");
       return;
     }
-    if (resultado.redirected) return; // o navegador vai redirecionar para o Google
+    if (resultado.redirected) {
+      // O navegador vai redirecionar para o Google.
+      return;
+    }
     setGoogleCarregando(false);
   }
 
