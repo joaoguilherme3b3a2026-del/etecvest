@@ -42,6 +42,17 @@ export function paraQuestao(linha: Linha): Questao {
   };
 }
 
+function embaralhar<T>(lista: T[]): T[] {
+  const resultado = [...lista];
+
+  for (let i = resultado.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [resultado[i], resultado[j]] = [resultado[j], resultado[i]];
+  }
+
+  return resultado;
+}
+
 const FiltroSchema = z.object({
   materia: z.string().optional(),
   ano: z.number().int().optional(),
@@ -88,12 +99,8 @@ export const gerarSimuladoOficial = createServerFn({ method: "POST" })
     const { data: linhas, error } = await query.limit(600);
     if (error) throw new Error(error.message);
 
-    const embaralhadas = [...(linhas ?? [])];
-    for (let i = embaralhadas.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const tmp = embaralhadas[i]!;
-      embaralhadas[i] = embaralhadas[j]!;
-      embaralhadas[j] = tmp;
-    }
-    return embaralhadas.slice(0, data.quantidade).map((l) => paraQuestao(l as Linha));
+    const embaralhadas = embaralhar(linhas ?? []);
+    return embaralhadas
+      .slice(0, data.quantidade)
+      .map((linha) => paraQuestao(linha as Linha));
   });
