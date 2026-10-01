@@ -2,26 +2,98 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, Bot, LayoutDashboard, ListChecks, ChartNoAxesCombined, LogOut, ArrowRight, Menu, X, RotateCcw } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Bot,
+  ChartNoAxesCombined,
+  LayoutDashboard,
+  ListChecks,
+  LogOut,
+  Menu,
+  RotateCcw,
+} from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/Button";
 import { SimuladoModal } from "@/components/SimuladoModal";
 import { ChatIa, perguntarIa } from "@/components/ChatIa";
 import { Modal } from "@/components/Modal";
-import { QUESTOES_SIMULADO, MATERIAS, MINI_SIMULADOS, TAREFAS, VESTIBULINHOS, DETALHES_MATERIA, type Questao } from "@/lib/conteudo";
-import { useProgresso, useProgressoAcoes, estadoVazio, aproveitamento, progressoMateria, cronogramaConcluido, formatarUltimoAcesso } from "@/lib/progresso";
+import {
+  QUESTOES_SIMULADO,
+  MATERIAS,
+  MINI_SIMULADOS,
+  TAREFAS,
+  VESTIBULINHOS,
+  DETALHES_MATERIA,
+  type Questao,
+} from "@/lib/conteudo";
+import {
+  useProgresso,
+  useProgressoAcoes,
+  estadoVazio,
+  aproveitamento,
+  progressoMateria,
+  cronogramaConcluido,
+  formatarUltimoAcesso,
+} from "@/lib/progresso";
 import { primeiroNome, sairDaConta } from "@/lib/sessao";
 import { listarErradas, resolverErrada } from "@/lib/progresso.functions";
-import { listarEdicoesOficiais, gerarSimuladoOficial } from "@/lib/questoes-oficiais.functions";
-import { gerarSimuladoSemana, treinosDoDia, exerciciosComIa } from "@/lib/treino.functions";
+import {
+  listarEdicoesOficiais,
+  gerarSimuladoOficial,
+} from "@/lib/questoes-oficiais.functions";
+import {
+  gerarSimuladoSemana,
+  treinosDoDia,
+  exerciciosComIa,
+} from "@/lib/treino.functions";
+
 export const Route = createFileRoute("/_authenticated/painel")({
-  head: () => ({meta: [
-    {title: "Painel do aluno — EtecVest"}, {name: "description", content: "Seu plano de estudos, simulados, progresso e revisão de erros para o Vestibulinho da Etec."},
-    {property: "og:title", content: "Painel do aluno — EtecVest"}, {property: "og:description", content: "Continue seus estudos para a Etec com simulados e revisão personalizada."},
-    {property: "og:type", content: "website"}, {name: "twitter:card", content: "summary_large_image"}, {name: "robots", content: "noindex"}
-  ]}), component: Painel,
+  head: () => ({
+    meta: [
+      {
+        title: "Painel do aluno — EtecVest",
+      },
+      {
+        name: "description",
+        content:
+          "Seu plano de estudos, simulados, progresso e revisão de erros para o Vestibulinho da Etec.",
+      },
+      {
+        property: "og:title",
+        content: "Painel do aluno — EtecVest",
+      },
+      {
+        property: "og:description",
+        content:
+          "Continue seus estudos para a Etec com simulados e revisão personalizada.",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "robots",
+        content: "noindex",
+      },
+    ],
+  }),
+  component: Painel,
 });
-const itens = [{id:"inicio",label:"Painel",icon:LayoutDashboard},{id:"materias",label:"Matérias",icon:BookOpen},{id:"simulados",label:"Simulados antigos",icon:BookOpen},{id:"ia",label:"IA de apoio",icon:Bot},{id:"progresso",label:"Progresso",icon:ChartNoAxesCombined},{id:"tarefas",label:"Tarefas",icon:ListChecks},{id:"revisao",label:"Revisão de erros",icon:RotateCcw}];
+
+const itens = [
+  { id: "inicio", label: "Painel", icon: LayoutDashboard },
+  { id: "materias", label: "Matérias", icon: BookOpen },
+  { id: "simulados", label: "Simulados antigos", icon: BookOpen },
+  { id: "ia", label: "IA de apoio", icon: Bot },
+  { id: "progresso", label: "Progresso", icon: ChartNoAxesCombined },
+  { id: "tarefas", label: "Tarefas", icon: ListChecks },
+  { id: "revisao", label: "Revisão de erros", icon: RotateCcw },
+];
 function Painel() {
   const {user} = Route.useRouteContext();
   const nome = primeiroNome(String(user.user_metadata['nome'] || user.user_metadata['full_name'] || "Estudante"));
