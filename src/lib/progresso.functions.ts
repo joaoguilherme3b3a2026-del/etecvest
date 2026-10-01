@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { BANCO_QUESTOES, MATERIAS } from "./conteudo";
+import { BANCO_QUESTOES } from "./conteudo";
 import { ehOficial, paraQuestao, PREFIXO_OFICIAL } from "./questoes-oficiais.functions";
 import {
   aplicarSimulado,
@@ -230,12 +230,10 @@ export const resetarProgresso = createServerFn({ method: "POST" })
 
     if (writeError) throw writeError;
 
-    const { error } = await context.supabase
+    await context.supabase
       .from("questoes_erradas")
       .delete()
       .eq("user_id", context.userId);
-
-    if (error) throw error;
 
     return vazio;
   });
