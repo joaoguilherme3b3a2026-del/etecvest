@@ -95,40 +95,179 @@ const itens = [
   { id: "revisao", label: "Revisão de erros", icon: RotateCcw },
 ];
 function Painel() {
-  const {user} = Route.useRouteContext();
-  const nome = primeiroNome(String(user.user_metadata['nome'] || user.user_metadata['full_name'] || "Estudante"));
-  const navigate = useNavigate(); const qc = useQueryClient();
-  const progresso = useProgresso(); const estado = progresso.data ?? estadoVazio(); const acoes = useProgressoAcoes();
-  const buscarErradas = useServerFn(listarErradas); const resolver = useServerFn(resolverErrada);
-  const erradas = useQuery({queryKey:["etecvest","erradas"],queryFn:() => buscarErradas()});
-  const buscarEdicoes = useServerFn(listarEdicoesOficiais); const gerarOficial = useServerFn(gerarSimuladoOficial);
-  const edicoes = useQuery({queryKey:["etecvest","edicoes"],queryFn:() => buscarEdicoes()});
-  const buscarSemana = useServerFn(gerarSimuladoSemana); const buscarDia = useServerFn(treinosDoDia); const gerarIa = useServerFn(exerciciosComIa); const [gerandoIa,setGerandoIa] = useState("");
-  const semana = useQuery({queryKey:["etecvest","semana"],queryFn:() => buscarSemana()});
-  const hoje = useQuery({queryKey:["etecvest","hoje",new Date().toDateString()],queryFn:() => buscarDia()});
-  async function treinoIa(chave: string, materia: Questao["materia"], tema: string | undefined, quantidade: number, titulo: string) { setErro(""); setGerandoIa(chave); try { const r = await gerarIa({data:{materia, ...(tema?{tema}:{}), quantidade}}); if (r.questoes.length) abrirSimulado(r.questoes, titulo); else setErro("Nenhum exercício encontrado."); } catch { setErro("Não foi possível montar os exercícios agora."); } finally { setGerandoIa(""); } }
-  async function iniciarTarefa(id: string) { const t = TAREFAS.find(x => x.id === id); if (!t) return; await treinoIa(id, t.materia, t.titulo, Math.min(Math.max(t.questoes,2),10), `Tarefa de revisão — ${t.titulo}`); }
-  const [menu,setMenu] = useState(false); const [simulado,setSimulado] = useState<Questao[] | null>(null);
-  const [tituloSimulado,setTituloSimulado] = useState("Simulado da semana — Etec");
-  const [chaveSimulado,setChaveSimulado] = useState(0);
-  function abrirSimulado(questoes: Questao[], titulo: string) { setTituloSimulado(titulo); setSimulado(questoes); setChaveSimulado(k => k + 1); }
-  // Filtros do simulado com questões reais das provas oficiais.
-  const [ofMateria,setOfMateria] = useState(""); const [ofEdicao,setOfEdicao] = useState(""); const [ofQtd,setOfQtd] = useState(10);
-  const [gerando,setGerando] = useState(false); const [erroOficial,setErroOficial] = useState("");
-  const [materia,setMateria] = useState(""); const [edicao,setEdicao] = useState("");
-  const [erro,setErro] = useState(""); const [ocupado,setOcupado] = useState(false);
-  const [revisao,setRevisao] = useState<Questao | null>(null); const [alternativa,setAlternativa] = useState<number | null>(null); const [feedback,setFeedback] = useState("");
-  async function executar(acao: () => Promise<unknown>) { setOcupado(true);setErro("");try {await acao();}catch {setErro("Não foi possível salvar a alteração. Tente novamente.");}finally{setOcupado(false);} }
-  const tarefas = TAREFAS.filter(t => (!materia || t.materia === materia) && (!edicao || t.vestibulinho === edicao));
-  async function gerarSimuladoReal() {
-    setGerando(true); setErroOficial("");
+  const { user } = Route.useRouteContext();
+  const nome = primeiroNome(
+    String(
+      user.user_metadata["nome"] ||
+        user.user_metadata["full_name"] ||
+        "Estudante",
+    ),
+  );
+
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const progresso = useProgresso();
+  const estado = progresso.data ?? estadoVazio();
+  const acoes = useProgressoAcoes();
+
+  const buscarErradas = useServerFn(listarErradas);
+  const resolver = useServerFn(resolverErrada);
+  const erradas = useQuery({
+    queryKey: ["etecvest", "erradas"],
+    queryFn: () => buscarErradas(),
+  });
+
+  const buscarEdicoes = useServerFn(listarEdicoesOficiais);
+  const gerarOficial = useServerFn(gerarSimuladoOficial);
+  const edicoes = useQuery({
+    queryKey: ["etecvest", "edicoes"],
+    queryFn: () => buscarEdicoes(),
+  });
+
+  const buscarSemana = useServerFn(gerarSimuladoSemana);
+  const buscarDia = useServerFn(treinosDoDia);
+  const gerarIa = useServerFn(exerciciosComIa);
+  const [gerandoIa, setGerandoIa] = useState("");
+
+  const semana = useQuery({
+    queryKey: ["etecvest", "semana"],
+    queryFn: () => buscarSemana(),
+  });
+  const hoje = useQuery({
+    queryKey: ["etecvest", "hoje", new Date().toDateString()],
+    queryFn: () => buscarDia(),
+  });
+
+  const [menu, setMenu] = useState(false);
+  const [simulado, setSimulado] = useState<Questao[] | null>(null);
+  const [tituloSimulado, setTituloSimulado] = useState(
+    "Simulado da semana — Etec",
+  );
+  const [chaveSimulado, setChaveSimulado] = useState(0);
+
+  const [ofMateria, setOfMateria] = useState("");
+  const [ofEdicao, setOfEdicao] = useState("");
+  const [ofQtd, setOfQtd] = useState(10);
+  const [gerando, setGerando] = useState(false);
+  const [erroOficial, setErroOficial] = useState("");
+
+  const [materia, setMateria] = useState("");
+  const [edicao, setEdicao] = useState("");
+  const [erro, setErro] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+
+  const [revisao, setRevisao] = useState<Questao | null>(null);
+  const [alternativa, setAlternativa] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState("");
+
+  async function treinoIa(
+    chave: string,
+    materia: Questao["materia"],
+    tema: string | undefined,
+    quantidade: number,
+    titulo: string,
+  ) {
+    setErro("");
+    setGerandoIa(chave);
+
     try {
-      const [anoSel,semSel] = ofEdicao ? ofEdicao.split("-").map(Number) : [undefined,undefined];
-      const questoes = await gerarOficial({data:{quantidade:ofQtd, ...(ofMateria?{materia:ofMateria}:{}), ...(anoSel?{ano:anoSel,semestre:semSel}:{})}});
-      if (!questoes.length) setErroOficial("Nenhuma questão encontrada com esses filtros. Tente outra matéria ou edição.");
-      else abrirSimulado(questoes, "Simulado com provas reais — Etec");
-    } catch { setErroOficial("Não foi possível montar o simulado agora. Tente novamente."); }
-    finally { setGerando(false); }
+      const resultado = await gerarIa({
+        data: {
+          materia,
+          ...(tema ? { tema } : {}),
+          quantidade,
+        },
+      });
+
+      if (resultado.questoes.length) {
+        abrirSimulado(resultado.questoes, titulo);
+      } else {
+        setErro("Nenhum exercício encontrado.");
+      }
+    } catch {
+      setErro("Não foi possível montar os exercícios agora.");
+    } finally {
+      setGerandoIa("");
+    }
+  }
+
+  async function iniciarTarefa(id: string) {
+    const tarefa = TAREFAS.find((item) => item.id === id);
+
+    if (!tarefa) {
+      return;
+    }
+
+    const quantidade = Math.min(Math.max(tarefa.questoes, 2), 10);
+
+    await treinoIa(
+      id,
+      tarefa.materia,
+      tarefa.titulo,
+      quantidade,
+      `Tarefa de revisão — ${tarefa.titulo}`,
+    );
+  }
+
+  function abrirSimulado(questoes: Questao[], titulo: string) {
+    setTituloSimulado(titulo);
+    setSimulado(questoes);
+    setChaveSimulado((chave) => chave + 1);
+  }
+
+  // Filtros do simulado com questões reais das provas oficiais.
+
+  async function executar(acao: () => Promise<unknown>) {
+    setOcupado(true);
+    setErro("");
+
+    try {
+      await acao();
+    } catch {
+      setErro("Não foi possível salvar a alteração. Tente novamente.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  const tarefas = TAREFAS.filter(
+    (tarefa) =>
+      (!materia || tarefa.materia === materia) &&
+      (!edicao || tarefa.vestibulinho === edicao),
+  );
+
+  async function gerarSimuladoReal() {
+    setGerando(true);
+    setErroOficial("");
+
+    try {
+      const [anoSel, semSel] = ofEdicao
+        ? ofEdicao.split("-").map(Number)
+        : [undefined, undefined];
+
+      const questoes = await gerarOficial({
+        data: {
+          quantidade: ofQtd,
+          ...(ofMateria ? { materia: ofMateria } : {}),
+          ...(anoSel ? { ano: anoSel, semestre: semSel } : {}),
+        },
+      });
+
+      if (!questoes.length) {
+        setErroOficial(
+          "Nenhuma questão encontrada com esses filtros. Tente outra matéria ou edição.",
+        );
+      } else {
+        abrirSimulado(questoes, "Simulado com provas reais — Etec");
+      }
+    } catch {
+      setErroOficial(
+        "Não foi possível montar o simulado agora. Tente novamente.",
+      );
+    } finally {
+      setGerando(false);
+    }
   }
   return <div className="min-h-screen bg-background">
   <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-surface px-5 py-7 lg:block"><Logo subtitulo="Desde 2026"/><p className="mt-10 text-xs font-bold uppercase text-muted-foreground">Estudos e acompanhamento</p><nav className="mt-4 space-y-2">{itens.map(({id,label,icon:Icon}) => <a key={id} href={`#${id}`} className="flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-semibold hover:bg-surface-2"><Icon size={18}/>{label}</a>)}</nav><div className="mt-8 border-t border-border pt-6"><p className="font-bold">Plano de hoje</p><p className="mt-2 text-sm text-muted-foreground">Um passo de cada vez até a Etec.</p><Button className="mt-4" disabled={!semana.data?.questoes.length} onClick={() => semana.data && abrirSimulado(semana.data.questoes, "Simulado da semana — Etec")}>Começar <ArrowRight size={16}/></Button></div></aside>
