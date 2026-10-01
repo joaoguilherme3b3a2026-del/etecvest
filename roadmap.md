@@ -1,0 +1,13 @@
+# EtecVest
+- [x] Restaurar painel protegido, sessão e progresso persistente.
+- [x] Ampliar simulados e registrar respostas por questão.
+- [x] Conectar IA de apoio no modal (chat em tempo real com histórico).
+- [x] Conectar revisão de erros e validar navegação.
+- [x] Ingestão das provas oficiais 2009–2026 (1.276 questões no banco).
+- [x] Simulados com provas reais (filtros de matéria, prova e quantidade).
+- [x] Limpeza: questões que dependem de imagem/gráfico/tabela ficam fora dos sorteios (546 aptas).
+- [x] Corrigir alternativas com texto da próxima questão (537 aptas) e verificação geral do site.
+- [x] Renderizar e testar fórmulas matemáticas no chat e no histórico da IA.
+- [x] Corrigir valores monetários em LaTeX malformado nas respostas novas e no histórico.
+- [x] Corrigir matérias das questões reais; simulado da semana, Hoje no EtecVest e tarefas com questões reais pela necessidade do aluno.
+- [x] Exercícios gerados por IA em Tarefas e Hoje (mistura IA + reais).
